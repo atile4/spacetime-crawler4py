@@ -1,5 +1,7 @@
 import re
 from urllib.parse import urlparse
+from bs4 import BeautifulSoup
+
 
 def scraper(url, resp):
     links = extract_next_links(url, resp)
@@ -21,6 +23,10 @@ def is_valid(url):
     # Decide whether to crawl this url or not. 
     # If you decide to crawl it, return True; otherwise return False.
     # There are already some conditions that return False.
+
+    # Valid Links: *.ics.uci.edu/*, *.cs.uci.edu/*, *.informatics.uci.edu/*, *.stat.uci.edu/*
+    # using 
+
     try:
         parsed = urlparse(url)
         if parsed.scheme not in set(["http", "https"]):
