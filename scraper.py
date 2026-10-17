@@ -17,19 +17,21 @@ def extract_next_links(url, resp):
     #         resp.raw_response.url: the url, again
     #         resp.raw_response.content: the content of the page!
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
+
+    
     return list()
 
-'''
-Decide whether to crawl this url or not. 
-
-If decide to crawl, return True; otherwise False
-
-Input:
-    url(string): the potential URL to crawl
-Returns:
-    boolean: True to crawl, False to not crawl
-'''
 def is_valid(url : str) -> bool:
+    '''
+    Decide whether to crawl this url or not. 
+
+    If decide to crawl, return True; otherwise False
+
+    Input:
+        url(string): the potential URL to crawl
+    Returns:
+        boolean: True to crawl, False to not crawl
+    '''
     # Valid Links: *.ics.uci.edu/*, *.cs.uci.edu/*, *.informatics.uci.edu/*, *.stat.uci.edu/*
     # using regex
     VALID_URL_RE = re.compile(r"^(?:[a-z0-9-]+\.)*(?:ics|cs|informatics|stat)\.uci\.edu$")
