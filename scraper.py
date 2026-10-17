@@ -18,8 +18,14 @@ def extract_next_links(url, resp):
     #         resp.raw_response.content: the content of the page!
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
 
-    
-    return list()
+    # goal: return a list with ALL hyperlinks -> valid or not
+    # create a list
+    hyper_links = []
+    # check whether response is sucessful -> if not return
+    # parse the content -> accquire the links
+    # if the link is a relative path -> make it absolute
+    # append to the list
+    return hyper_links
 
 def is_valid(url : str) -> bool:
     '''
