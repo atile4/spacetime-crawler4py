@@ -10,6 +10,7 @@ def scraper(url, resp):
 
 def extract_next_links(url, resp):
     """
+    extracts all the links found in the webpage to be returned 
     Inputs:
         url(string) - url used to get the page
         resp(response object) - the downloaded response object of the url
@@ -19,8 +20,8 @@ def extract_next_links(url, resp):
     # goal: return a list with ALL hyperlinks -> valid or not
     # create a list
     hyper_links = []
-    
-    # check whether response is sucessful -> if not return
+
+    # check whether response is sucessful or there is no content -> if not return
     if resp.status != 200 or resp.raw_response is None:
         return hyper_links
 
@@ -29,11 +30,11 @@ def extract_next_links(url, resp):
     for link in soup.find_all('a', href=True):
         temp = link.get('href')
         # if empty skip to the next link
-        if temp == '': 
+        if not temp.strip(): 
             continue
-        # appending links to list, for realtive -> converting to absolute
-        hyper_links.append(urljoin(resp.url, temp))
-
+        # appending links to list, joining links so relative becomes absolute
+        temp = urljoin(resp.url, temp).split("#")[0] #removing the url fragment
+        hyper_links.append(temp)
     return hyper_links
 
 def is_valid(url : str) -> bool:
