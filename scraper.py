@@ -1,6 +1,40 @@
 import re
 from urllib.parse import urlparse
+from urllib.parse import urljoin
 from bs4 import BeautifulSoup
+
+
+'''
+Report Content:
+1. How many unique pages did you find? 
+    ONLY consider URL, discarding the fragment part: http://www.ics.uci.edu#aaa == http://www.ics.uci.edu#bbb == 1 unique page
+2. What is the longest page in terms of the number of words? 
+    (HTML markup doesn’t count as words)
+3. What are the 50 most common words in the entire set of pages crawled under these domains ? 
+    (Ignore English stop words: https://www.ranks.nl/stopwords)
+    Submit list of common words ordered by frequency.
+4. How many subdomains did you find in the ics.uci.edu domain? 
+    Submit list of subdomains ordered alphabetically AND the number of unique pages detected in each subdomain. 
+    Format should be lines containing <URL>, <number>   For example:  http://vision.ics.uci.edu, 10
+
+
+In this project, we are looking for TEXT on Web pages so that we can search for it later on. 
+    The following is a list of what a "correct crawl" entails in this context:
+        * Honor the politeness delay for each site
+        * Crawl all pages with high textual information content
+        * Detect and avoid infinite traps
+        * Detect and avoid sets of similar pages with no information
+        * Detect redirects and if the page redirects your crawler, index the redirected content
+        * Detect and avoid dead URLs that return a 200 status but no data (click here to see what the different HTTP status codes mean)
+        * Detect and avoid crawling very large files, especially if they have low information value
+
+    Notes & Tips:
+        Note 1: Please remember to transform relative to absolute URLs (you will get very wrong statistics if you do not remember to do so, and your grade will suffer).
+        Note 2: Also, please, add comments throughout your code. We shouldn’t need to ask you to do this at this point in your career, but we keep this note as a reminder.
+        Note 3: Before launching your crawler, ensure that you send the server a request with an ASCII URL, but neither the entire HTML content of the webpage that you are crawling nor garbage/Unicode strings.
+        Note 4: You should write simple automatic trap detection systems based on repeated URL patterns and/or (ideally) webpage content similarity repetition over a certain amount of chained pages (the threshold definition is up to you!).
+        Note 5: Use openlab and tmux to operate your crawler. This will certainly make your life easier.
+'''
 
 
 def scraper(url, resp):
@@ -8,28 +42,45 @@ def scraper(url, resp):
     return [link for link in links if is_valid(link)]
 
 def extract_next_links(url, resp):
-    # Implementation required.
-    # url: the URL that was used to get the page
-    # resp.url: the actual url of the page
-    # resp.status: the status code returned by the server. 200 is OK, you got the page. Other numbers mean that there was some kind of problem.
-    # resp.error: when status is not 200, you can check the error here, if needed.
-    # resp.raw_response: this is where the page actually is. More specifically, the raw_response has two parts:
-    #         resp.raw_response.url: the url, again
-    #         resp.raw_response.content: the content of the page!
-    # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
-    return list()
+    """
+    extracts all the links found in the webpage to be returned 
+    Inputs:
+        url(string) - url used to get the page
+        resp(response object) - the downloaded response object of the url
+    Outputs:
+        hyper_links(list) - list of links found in webpage
+    """
+    # goal: return a list with ALL hyperlinks -> valid or not
+    # create a list
+    hyper_links = []
 
-'''
-Decide whether to crawl this url or not. 
+    # check whether response is sucessful or if there is no content -> if not return
+    if resp.status != 200 or resp.raw_response is None:
+        return hyper_links
 
-If decide to crawl, return True; otherwise False
+    # parse the content -> accquire the links
+    soup = BeautifulSoup(resp.raw_response.content, 'html.parser')
+    for link in soup.find_all('a', href=True):
+        temp = link.get('href')
+        # if empty skip to the next link
+        if not temp.strip(): 
+            continue
+        # appending links to list, joining links so relative becomes absolute
+        temp = urljoin(resp.url, temp).split("#")[0] #removing the url fragment
+        hyper_links.append(temp)
+    return hyper_links
 
-Input:
-    url(string): the potential URL to crawl
-Returns:
-    boolean: True to crawl, False to not crawl
-'''
 def is_valid(url : str) -> bool:
+    '''
+    Decide whether to crawl this url or not. 
+
+    If decide to crawl, return True; otherwise False
+
+    Input:
+        url(string): the potential URL to crawl
+    Returns:
+        boolean: True to crawl, False to not crawl
+    '''
     # Valid Links: *.ics.uci.edu/*, *.cs.uci.edu/*, *.informatics.uci.edu/*, *.stat.uci.edu/*
     # using regex
     VALID_URL_RE = re.compile(r"^(?:[a-z0-9-]+\.)*(?:ics|cs|informatics|stat)\.uci\.edu$")
