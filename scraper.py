@@ -1,5 +1,6 @@
 import re
 from urllib.parse import urlparse
+from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 
 
@@ -22,9 +23,19 @@ def extract_next_links(url, resp):
     # create a list
     hyper_links = []
     # check whether response is sucessful -> if not return
+    if resp.status != 200 or None:
+        return hyper_links
+
     # parse the content -> accquire the links
-    # if the link is a relative path -> make it absolute
-    # append to the list
+    soup = BeautifulSoup(resp.raw_response.content, 'html.parser')
+    for link in soup.find_all('a', href=True):
+        temp = link.get('href')
+        # if empty skip to the next link
+        if temp == '': 
+            continue
+        # appending links to list, for realtive -> converting to absolute
+        hyper_links.append(urljoin(resp.url, temp))
+
     return hyper_links
 
 def is_valid(url : str) -> bool:
