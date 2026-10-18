@@ -21,7 +21,7 @@ def extract_next_links(url, resp):
     # create a list
     hyper_links = []
 
-    # check whether response is sucessful or there is no content -> if not return
+    # check whether response is sucessful or if there is no content -> if not return
     if resp.status != 200 or resp.raw_response is None:
         return hyper_links
 
