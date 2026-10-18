@@ -9,21 +9,19 @@ def scraper(url, resp):
     return [link for link in links if is_valid(link)]
 
 def extract_next_links(url, resp):
-    # Implementation required.
-    # url: the URL that was used to get the page
-    # resp.url: the actual url of the page
-    # resp.status: the status code returned by the server. 200 is OK, you got the page. Other numbers mean that there was some kind of problem.
-    # resp.error: when status is not 200, you can check the error here, if needed.
-    # resp.raw_response: this is where the page actually is. More specifically, the raw_response has two parts:
-    #         resp.raw_response.url: the url, again
-    #         resp.raw_response.content: the content of the page!
-    # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
-
+    """
+    Inputs:
+        url(string) - url used to get the page
+        resp(response object) - the downloaded response object of the url
+    Outputs:
+        hyper_links(list) - list of links found in webpage
+    """
     # goal: return a list with ALL hyperlinks -> valid or not
     # create a list
     hyper_links = []
+    
     # check whether response is sucessful -> if not return
-    if resp.status != 200 or None:
+    if resp.status != 200 or resp.raw_response is None:
         return hyper_links
 
     # parse the content -> accquire the links
