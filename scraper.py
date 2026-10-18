@@ -39,7 +39,20 @@ In this project, we are looking for TEXT on Web pages so that we can search for 
 
 def scraper(url, resp):
     links = extract_next_links(url, resp)
-    return [link for link in links if is_valid(link)]
+    
+    # go through all links: check for 1) validity and 2) they can be crawled
+    for link in links:
+        if not is_valid(link): continue
+
+
+
+    # return [link for link in links if is_valid(link)]
+
+
+
+
+
+
 
 def extract_next_links(url, resp):
     """
