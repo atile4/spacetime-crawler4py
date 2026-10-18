@@ -37,7 +37,38 @@ In this project, we are looking for TEXT on Web pages so that we can search for 
 '''
 
 
-def _url_allowed_by_robot_txt(url : str, user_agent = '*') -> bool:
+class Report:
+    def __init__(self):
+        self.visited_urls = set()
+        self.url_subdomain_count = dict()
+        self.token_frequency_table = dict()
+        self.longest_webpage = ('', -1)
+
+    def visitedSite(self):
+        self
+
+    def getNumVisitedURLs(self) -> int:
+        return len(self.visited_urls)
+    
+    def getMostCommonWords(count = 50) -> dict[str, int]:
+        ...
+    
+    def _ncrementSubdomainCount(self, url: str):
+        base_url = ...
+        try:
+            self.token_frequency_table[base_url] += 1
+        except KeyError:
+            self.token_frequency_table[base_url] = 1
+        ...
+
+    def checkIfLongestPage(self, url: str, tokens_count: int):
+        if self.longest_webpage[1] > tokens_count:
+            self.longest_webpage = (url, tokens_count)
+
+
+
+
+def _urlAllowedByRobotTxt(url : str, user_agent = '*') -> bool:
     """
     Returns if string is valid and is not disallowed in the base_url's robots.txt
     """
@@ -59,6 +90,9 @@ def _url_allowed_by_robot_txt(url : str, user_agent = '*') -> bool:
         print(f'Returned True after exception encountered accessing robots.txt of {base_url}:', e)
         return True
 
+    # potential optimization:
+    # store disallowed urls in a dictionary that maps str base urls to a set of their disallowed urls
+
     # check if url is allowed
     return rp.can_fetch(user_agent, url) 
 
@@ -77,31 +111,29 @@ def scraper(url, resp) -> list[str]:
     # look into using socket.setdefaulttimeout to prevent program from hanging or crashing on unresponsive servers
     # when we run this program, make sure that the existing base code implements a delay for politeness, else use time.sleep(POLITENESS) or smth like that
 
-
     # initialize return list
     return_links = []
 
     # check validity of the link we were passed
-    if not (_url_allowed_by_robot_txt(url)): return return_links
+    if not (_urlAllowedByRobotTxt(url)): return return_links
 
 
     # add logic for traps & stuff here, before page is parsed for links
 
 
-
     # extract_next_links handles any http errors from resp
     links = extract_next_links(url, resp)
 
-    # tokenize page and 
+    # Some ideas for the report and tokenizing process:
+    # perhaps make a class to handle these different attributes 
+    # 1. Unique pages: add url (minus fragments) to a set
+    # 2. Longest webpage: compare len of tokens list
+    # 3. Most common words: merge this page's frequency dictionary with some existing global
+    # 4. Increment dictionary entry mapping <URL>, <number> 
+
 
     # iterate through all links; check if they can be crawled
-    for link in links:
-        if not (_url_allowed_by_robot_txt(url)): continue
-        return_links.append(url)
-        
-    return return_links
-
-    # return [link for link in links if is_valid(link)] # old return value
+    return [link for link in links if _urlAllowedByRobotTxt(link)] # old return value
 
 
 
