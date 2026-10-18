@@ -1,8 +1,8 @@
 import re
 from urllib.parse import urlparse
 from urllib.parse import urljoin
+from urllib.robotparser import RobotFileParser
 from bs4 import BeautifulSoup
-
 
 '''
 Report Content:
@@ -37,16 +37,71 @@ In this project, we are looking for TEXT on Web pages so that we can search for 
 '''
 
 
-def scraper(url, resp):
+def _url_allowed_by_robot_txt(url : str, user_agent = '*') -> bool:
+    """
+    Returns if string is valid and is not disallowed in the base_url's robots.txt
+    """
+
+    # make sure we even care about accessing this url
+    # also checks validity
+    if not is_valid(url): return False
+
+    # get base url
+    parts = urlparse(url)
+    base_url = f"{parts.scheme}://{parts.netloc}"
+
+    # Read and parse robots.txt
+    rp = RobotFileParser(f"{base_url}/robots.txt")
+    try:
+        rp.read()
+    except Exception as e:
+        # return True on error; no robots.txt to deny entry
+        print(f'Returned True after exception encountered accessing robots.txt of {base_url}:', e)
+        return True
+
+    # check if url is allowed
+    return rp.can_fetch(user_agent, url) 
+
+
+
+def scraper(url, resp) -> list[str]:
+    """
+    handles logic for web scraping returns valid links found in the webpage
+    Inputs:
+        url(string) - url used to get the page
+        resp(response object) - the downloaded response object of the url
+    Returns:
+        return_links(list[str]) - list of valid links found in webpage
+    """
+    # NOTES: 
+    # look into using socket.setdefaulttimeout to prevent program from hanging or crashing on unresponsive servers
+    # when we run this program, make sure that the existing base code implements a delay for politeness, else use time.sleep(POLITENESS) or smth like that
+
+
+    # initialize return list
+    return_links = []
+
+    # check validity of the link we were passed
+    if not (_url_allowed_by_robot_txt(url)): return return_links
+
+
+    # add logic for traps & stuff here, before page is parsed for links
+
+
+
+    # extract_next_links handles any http errors from resp
     links = extract_next_links(url, resp)
-    
-    # go through all links: check for 1) validity and 2) they can be crawled
+
+    # tokenize page and 
+
+    # iterate through all links; check if they can be crawled
     for link in links:
-        if not is_valid(link): continue
+        if not (_url_allowed_by_robot_txt(url)): continue
+        return_links.append(url)
+        
+    return return_links
 
-
-
-    # return [link for link in links if is_valid(link)]
+    # return [link for link in links if is_valid(link)] # old return value
 
 
 
@@ -60,8 +115,8 @@ def extract_next_links(url, resp):
     Inputs:
         url(string) - url used to get the page
         resp(response object) - the downloaded response object of the url
-    Outputs:
-        hyper_links(list) - list of links found in webpage
+    Returns:
+        hyper_links(list[str]) - list of links found in webpage
     """
     # goal: return a list with ALL hyperlinks -> valid or not
     # create a list
