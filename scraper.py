@@ -18,8 +18,12 @@ class Report:
     def getNumVisitedURLs(self) -> int:
         return len(self.visited_urls)
     
-    def getMostCommonWords(count = 50) -> dict[str, int]:
-        ...
+    def getMostCommonWords(self, count = 50) -> dict[str, int]:
+        return dict(list(self.token_frequency_table.items())[:50])
+
+    def updateWordFrequencies(self, map: dict[str, int]) -> None:
+        for token, freq in map.items():
+            self.token_frequency_table[token] = map.get(token, 0) + freq
     
     def _incrementSubdomainCount(self, url: str):
         base_url = ...
@@ -30,7 +34,7 @@ class Report:
         ...
 
     def checkIfLongestPage(self, url: str, tokens_count: int):
-        if self.longest_webpage[1] > tokens_count:
+        if self.longest_webpage[1] < tokens_count:
             self.longest_webpage = (url, tokens_count)
 
 def scraper(url, report : Report, resp) -> list[str]: 
@@ -55,7 +59,10 @@ def parse_text_and_update_report(url : str, soup : BeautifulSoup, report : Repor
     # update if longest page
     report.checkIfLongestPage(url, len(tokens))
 
-    
+    # compute and update word frequencies
+    map = computeWordFrequencies(tokens=tokens)
+    report.updateWordFrequencies(map)
+
 
 def extract_next_links(url, resp, soup):
     """
