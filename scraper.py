@@ -35,6 +35,9 @@ def extract_next_links(url, resp):
         # appending links to list, joining links so relative becomes absolute
         temp = urljoin(resp.url, temp).split("#")[0] #removing the url fragment
         hyper_links.append(temp)
+
+    # TODO saving text and/or frequencies here
+
     return hyper_links
 
 def is_valid(url : str) -> bool:
