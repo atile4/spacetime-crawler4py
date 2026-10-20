@@ -3,6 +3,8 @@ from urllib.parse import urlparse
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 
+from text_processing import computeWordFrequencies, tokenize
+
 
 def scraper(url, resp):
     links = extract_next_links(url, resp)

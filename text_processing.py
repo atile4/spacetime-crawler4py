@@ -1,23 +1,10 @@
-def tokenize(path : str) -> list[str]:
-    # list containing all resulting tokens
-    tokens = []
+def tokenize(raw_text : str) -> list[str]:
+    # to account for possessive/shortened words
+    raw_text = raw_text.lower().replace("'", "") 
 
-    try:
-        with open(path, 'r', encoding='utf-8') as file:
-            for line in file:
-                # tokenize curr line
-
-                # to account for possessive/shortened words
-                line = line.lower().replace("'", "") 
-
-                # replace special characters with blank space
-                cleaned = ''.join([c if c.isalnum() and c.isascii() else ' ' for c in line])
-
-                # add tokens in the current line to tokens list
-                tokens.extend(cleaned.split())
-
-    except:
-        raise FileNotFoundError("Could not find file")
+    # remove special characters
+    cleaned = ''.join([c if c.isalnum() and c.isascii() else ' ' for c in raw_text])
+    tokens = cleaned.split()
 
     return tokens
 
