@@ -5,8 +5,39 @@ from bs4 import BeautifulSoup
 
 from text_processing import computeWordFrequencies, tokenize
 
+class Report:
+    def __init__(self):
+        self.visited_urls = set()
+        self.url_subdomain_count = dict()
+        self.token_frequency_table = dict()
+        self.longest_webpage = ('', -1)
 
-def scraper(url, resp) -> list[str]: 
+    def visitedSite(self):
+        self
+
+    def getNumVisitedURLs(self) -> int:
+        return len(self.visited_urls)
+    
+    def getMostCommonWords(self, count = 50) -> dict[str, int]:
+        return dict(list(self.token_frequency_table.items())[:50])
+
+    def updateWordFrequencies(self, map: dict[str, int]) -> None:
+        for token, freq in map.items():
+            self.token_frequency_table[token] = map.get(token, 0) + freq
+    
+    def _incrementSubdomainCount(self, url: str):
+        base_url = ...
+        try:
+            self.token_frequency_table[base_url] += 1
+        except KeyError:
+            self.token_frequency_table[base_url] = 1
+        ...
+
+    def checkIfLongestPage(self, url: str, tokens_count: int):
+        if self.longest_webpage[1] < tokens_count:
+            self.longest_webpage = (url, tokens_count)
+
+def scraper(url, report : Report, resp) -> list[str]: 
     # check whether response is sucessful or if there is no content -> if not return
     if resp.status != 200 or resp.raw_response is None:
         return []
@@ -16,9 +47,22 @@ def scraper(url, resp) -> list[str]:
     links = extract_next_links(url, resp, soup)
 
     # @TODO logic for adding unique pages, longest page, most common words, and subdomains
-    # computeWordFrequencies(tokenize(soup.get_text(" ", strip=True))) # <- retrieves word frequency of each page
+    parse_text_and_update_report(url, soup, report)
 
     return [link for link in links if is_valid(link)]
+
+def parse_text_and_update_report(url : str, soup : BeautifulSoup, report : Report):
+    # update visited URL set
+    report.visited_urls.add(url)
+    tokens = tokenize(soup.get_text(" ", strip=True))
+
+    # update if longest page
+    report.checkIfLongestPage(url, len(tokens))
+
+    # compute and update word frequencies
+    map = computeWordFrequencies(tokens=tokens)
+    report.updateWordFrequencies(map)
+
 
 def extract_next_links(url, resp, soup):
     """
