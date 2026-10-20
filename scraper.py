@@ -6,11 +6,21 @@ from bs4 import BeautifulSoup
 from text_processing import computeWordFrequencies, tokenize
 
 
-def scraper(url, resp):
-    links = extract_next_links(url, resp)
+def scraper(url, resp) -> list[str]: 
+    # check whether response is sucessful or if there is no content -> if not return
+    if resp.status != 200 or resp.raw_response is None:
+        return []
+
+    soup = BeautifulSoup(resp.raw_response.content, 'html.parser')
+
+    links = extract_next_links(url, resp, soup)
+
+    # @TODO logic for adding unique pages, longest page, most common words, and subdomains
+    # computeWordFrequencies(tokenize(soup.get_text(" ", strip=True))) # <- retrieves word frequency of each page
+
     return [link for link in links if is_valid(link)]
 
-def extract_next_links(url, resp):
+def extract_next_links(url, resp, soup):
     """
     extracts all the links found in the webpage to be returned 
     Inputs:
@@ -23,12 +33,7 @@ def extract_next_links(url, resp):
     # create a list
     hyper_links = []
 
-    # check whether response is sucessful or if there is no content -> if not return
-    if resp.status != 200 or resp.raw_response is None:
-        return hyper_links
-
     # parse the content -> accquire the links
-    soup = BeautifulSoup(resp.raw_response.content, 'html.parser')
     for link in soup.find_all('a', href=True):
         temp = link.get('href')
         # if empty skip to the next link
@@ -37,8 +42,6 @@ def extract_next_links(url, resp):
         # appending links to list, joining links so relative becomes absolute
         temp = urljoin(resp.url, temp).split("#")[0] #removing the url fragment
         hyper_links.append(temp)
-
-    # TODO saving text and/or frequencies here
 
     return hyper_links
 
