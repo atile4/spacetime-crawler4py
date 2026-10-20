@@ -7,6 +7,7 @@ import scraper
 import time
 
 
+
 class Worker(Thread):
     def __init__(self, worker_id, config, frontier):
         self.logger = get_logger(f"Worker-{worker_id}", "Worker")
@@ -18,6 +19,7 @@ class Worker(Thread):
         super().__init__(daemon=True)
         
     def run(self):
+        report = scraper.Report()
         while True:
             tbd_url = self.frontier.get_tbd_url()
             if not tbd_url:
@@ -27,7 +29,7 @@ class Worker(Thread):
             self.logger.info(
                 f"Downloaded {tbd_url}, status <{resp.status}>, "
                 f"using cache {self.config.cache_server}.")
-            scraped_urls = scraper.scraper(tbd_url, resp)
+            scraped_urls = scraper.scraper(tbd_url, report, resp)
             for scraped_url in scraped_urls:
                 self.frontier.add_url(scraped_url)
             self.frontier.mark_url_complete(tbd_url)
