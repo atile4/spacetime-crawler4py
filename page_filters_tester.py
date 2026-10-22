@@ -18,9 +18,26 @@ def test_deep_long_and_many_params_blocked():
     assert pf.is_trap("https://t1.ics.uci.edu/p?a=1&b=2&c=3&d=4&e=5") is True
     assert pf.is_trap("https://t1.ics.uci.edu/p?a=1&b=2") is False
 
+def test_junk_parameters_blocked():
+    assert pf.is_trap("https://t2.ics.uci.edu/doc?do=edit") is True
+    assert pf.is_trap("https://t2.ics.uci.edu/p?PHPSESSID=abc") is True
+
+
+def test_template_limit_cuts_off_calendar():
+    urls = [f"https://cal.ics.uci.edu/events/2026-10-{i:03d}" for i in range(305)]
+    results = [pf.is_trap(u) for u in urls]
+    assert not any(results[:300])
+    assert all(results[300:])
+
+
+def test_repeat_sightings_do_not_inflate_count():
+    for _ in range(1000):
+        pf.is_trap("https://t2.ics.uci.edu/news/12")
+    assert pf.is_trap("https://t2.ics.uci.edu/news/12") is False
 
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):
             fn()
             print("ok", name)
+
