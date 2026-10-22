@@ -24,7 +24,7 @@ class Report:
 
     def updateWordFrequencies(self, map: dict[str, int]) -> None:
         for token, freq in map.items():
-            self.token_frequency_table[token] = map.get(token, 0) + freq
+            self.token_frequency_table[token] = self.token_frequency_table.get(token, 0) + freq
     
     def _incrementSubdomainCount(self, url: str):
         base_url = ...
