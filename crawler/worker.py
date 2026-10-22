@@ -5,8 +5,7 @@ from utils.download import download
 from utils import get_logger
 import scraper
 import time
-
-
+import requests
 
 class Worker(Thread):
     def __init__(self, worker_id, config, frontier):
@@ -30,15 +29,47 @@ class Worker(Thread):
         - use tmux to operate crawler
         - add more if necessary
     """
+
     def run(self):
         report = scraper.Report()
-        # i = 0
-        while True:
+        retry_delay = 30
+
+        while True:  
             tbd_url = self.frontier.get_tbd_url()
             if not tbd_url:
                 self.logger.info("Frontier is empty. Stopping Crawler.")
                 break
-            resp = download(tbd_url, self.config, self.logger)
+
+            # attempt to connect to cache server and download text
+            try:
+                resp = download(tbd_url, self.config, self.logger)
+            except requests.exceptions.ConnectTimeout: # server is unreachable
+                self.logger.error(
+                    f"Timed out connecting to cache server {self.config.cache_server} "
+                    f"while fetching {tbd_url}. Retrying in {retry_delay}s.")
+                time.sleep(retry_delay)
+                continue
+            except requests.exceptions.ConnectionError as e:   # unable to connect to cache server
+                self.logger.error(
+                    f"Cannot connect to cache server {self.config.cache_server} "
+                    f"while fetching {tbd_url}: {e}. Retrying in {retry_delay}s.")
+                time.sleep(retry_delay)
+                continue
+            except requests.exceptions.Timeout:  # server timed out while reading the URL
+                self.logger.error(
+                    f"Cache server {self.config.cache_server} timed out reading "
+                    f"{tbd_url}. Retrying in {retry_delay}s.")
+                time.sleep(retry_delay)
+                continue
+            except requests.exceptions.HTTPError as e: # avoid retrying forever
+                self.logger.error(f"HTTP error while fetching {tbd_url}: {e}")
+                self.frontier.mark_url_complete(tbd_url) 
+                continue
+            except requests.exceptions.RequestException as e:
+                self.logger.error(f"Request failed for {tbd_url}: {e}")
+                self.frontier.mark_url_complete(tbd_url)
+                continue
+
             self.logger.info(
                 f"Downloaded {tbd_url}, status <{resp.status}>, "
                 f"using cache {self.config.cache_server}.")
@@ -47,7 +78,7 @@ class Worker(Thread):
                 self.frontier.add_url(scraped_url)
             self.frontier.mark_url_complete(tbd_url)
             time.sleep(self.config.time_delay)
-            # i += 1
+
         print("============REPORT============")
         print("unique pages:", len(report.visited_urls))
         print("longest page:", report.longest_webpage)
