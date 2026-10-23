@@ -88,8 +88,13 @@ def extract_next_links(url, resp, soup):
         if not temp.strip(): 
             continue
         # appending links to list, joining links so relative becomes absolute
-        temp = urljoin(resp.url, temp).split("#")[0] #removing the url fragment
-        hyper_links.append(temp)
+
+        try: 
+            temp = urljoin(resp.url, temp).split("#")[0] #removing the url fragment
+            hyper_links.append(temp)
+        except ValueError:
+            print(f"Skipping malformed URL: {temp}")
+            continue
 
     return hyper_links
 
