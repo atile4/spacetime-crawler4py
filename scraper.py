@@ -24,7 +24,7 @@ class Report:
 
     def updateWordFrequencies(self, map: dict[str, int]) -> None:
         for token, freq in map.items():
-            self.token_frequency_table[token] = map.get(token, 0) + freq
+            self.token_frequency_table[token] = self.token_frequency_table.get(token, 0) + freq
     
     def _incrementSubdomainCount(self, url: str):
         base_url = ...
@@ -54,6 +54,9 @@ def scraper(url, report : Report, resp) -> list[str]:
 
 def parse_text_and_update_report(url : str, soup : BeautifulSoup, report : Report):
     # update visited URL set
+    if url in report.visited_urls: # if already in, don't count
+        return
+
     report.visited_urls.add(url)
     tokens = tokenize(soup.get_text(" ", strip=True))
 
