@@ -4,9 +4,11 @@ from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 
 from text_processing import computeWordFrequencies, tokenize
-from page_filters import is_trap
+from page_filters import is_trap, low_value_reason
 
 from urllib.robotparser import RobotFileParser
+
+
 
 class Report:
     def __init__(self):
@@ -97,6 +99,11 @@ def scraper(url, report : Report, resp) -> list[str]:
     if not is_valid(url): return []
 
     soup = BeautifulSoup(resp.raw_response.content, 'html.parser')
+
+    reason = low_value_reason(resp, soup.get_text(" ", strip=True))
+    if reason:
+        print(f"Skipped {url}: {reason}")
+        return []
 
     links = extract_next_links(url, resp, soup)
 
