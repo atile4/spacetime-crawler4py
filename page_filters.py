@@ -22,12 +22,18 @@ import re
 from collections import defaultdict
 from urllib.parse import urlparse, parse_qsl
 from datetime import datetime 
+from text_processing import tokenize
 
+# trap function variables
 MAX_URL_LENGTH = 200
 MAX_PATH_DEPTH = 10
 MAX_QUERY_PARAMS = 4
 MAX_URLS_PER_TEMPLATE = 30
 MAX_CALENDAR_URLS = 10 
+
+# page-quality. checker variables
+MIN_WORDS = 50
+MAX_CONTENT_BYTES = 2 * 1024 * 1024
 
 JUNK_PARAMS = {
     "sid", "sessionid", "session_id", "phpsessid", "jsessionid",
@@ -107,3 +113,23 @@ def is_trap(url):
         return True
 
     return False
+
+
+def low_value_reason(resp, text):
+    raw = resp.raw_response
+
+    if raw is None or not raw.content:
+        return "empty page"
+
+    content_type = raw.headers.get("Content-Type", "").lower()
+    if content_type and "html" not in content_type:
+        return f"not html ({content_type.split(';')[0]})"
+
+    if len(raw.content) > MAX_CONTENT_BYTES:
+        return "too large"
+
+    tokens = tokenize(text)
+    if len(tokens) < MIN_WORDS:
+        return f"too few words ({len(tokens)})"
+
+    return None
