@@ -4,6 +4,7 @@ from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 
 from text_processing import computeWordFrequencies, tokenize
+from page_filters import is_trap
 
 from urllib.robotparser import RobotFileParser
 
@@ -53,7 +54,7 @@ class Report:
 
     def _updateWordFrequencies(self, map: dict[str, int]) -> None:
         for token, freq in map.items():
-            self.token_frequency_table[token] = map.get(token, 0) + freq
+            self.token_frequency_table[token] = self.token_frequency_table.get(token, 0) + freq
     
     def _incrementSubdomainCount(self, base_url: str):
         if base_url in self.url_subdomain_count:
@@ -103,7 +104,6 @@ def scraper(url, report : Report, resp) -> list[str]:
 
     return [link for link in links if is_valid(link)]
 
-
 def extract_next_links(url, resp, soup):
     """
     extracts all the links found in the webpage to be returned 
@@ -151,7 +151,7 @@ def is_valid(url : str) -> bool:
             return False
 
         # check if path is file extension
-        return not re.match( 
+        if re.match( 
             r".*\.(css|js|bmp|gif|jpe?g|ico"
             + r"|png|tiff?|mid|mp2|mp3|mp4"
             + r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf"
@@ -159,7 +159,10 @@ def is_valid(url : str) -> bool:
             + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
             + r"|epub|dll|cnf|tgz|sha1"
             + r"|thmx|mso|arff|rtf|jar|csv"
-            + r"|rm|smil|wmv|swf|wma|zip|rar|gz)$", parsed.path.lower())
+            + r"|rm|smil|wmv|swf|wma|zip|rar|gz)$", parsed.path.lower()):
+            return False
+        
+        return not is_trap(url)
 
     except TypeError:
         print ("TypeError for ", parsed)
