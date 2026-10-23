@@ -9,8 +9,6 @@ from page_filters import is_trap, low_value_reason
 from urllib.robotparser import RobotFileParser
 import threading
 
-
-
 class Report:
     def __init__(self):
         self.visited_urls = set()
