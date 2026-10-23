@@ -8,15 +8,26 @@ import time
 import requests
 
 class Worker(Thread):
-    def __init__(self, worker_id, config, frontier):
+    def __init__(self, worker_id, config, frontier, report):
         self.logger = get_logger(f"Worker-{worker_id}", "Worker")
         self.config = config
         self.frontier = frontier
+        self.report = report
         # basic check for requests in scraper
         assert {getsource(scraper).find(req) for req in {"from requests import", "import requests"}} == {-1}, "Do not use requests in scraper.py"
         assert {getsource(scraper).find(req) for req in {"from urllib.request import", "import urllib.request"}} == {-1}, "Do not use urllib.request in scraper.py"
         super().__init__(daemon=True)
-        
+
+    def _download_with_retry(self, url):
+        while True:
+            try:
+                return download(url, self.config, self.logger)
+            except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+                self.logger.error(f"Cache server unreachable ({type(e).__name__}) for {url}. Retrying in 5s.")
+                time.sleep(5)
+            except requests.exceptions.RequestException as e:
+                self.logger.error(f"Request failed for {url}: {e}")
+                return None
     """    
     @TODO 
         - detect duplicate pages
@@ -31,29 +42,19 @@ class Worker(Thread):
     """
 
     def run(self):
-        report = scraper.Report()
-        RETRY_DELAY = 5
-
-        while True:  
+        while True:
             tbd_url = self.frontier.get_tbd_url()
             if not tbd_url:
                 self.logger.info("Frontier is empty. Stopping Crawler.")
                 break
 
-            # attempt to connect to cache server and download text
-            resp = None
-            while resp is None:
-                try:
-                    resp = download(tbd_url, self.config, self.logger)
-                except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
-                    self.logger.error(
-                        f"Cache server {self.config.cache_server} unreachable "
-                        f"({type(e).__name__}) while fetching {tbd_url}. Retrying in {RETRY_DELAY}s.")
-                    time.sleep(RETRY_DELAY)  # loop again with the SAME url
-                except requests.exceptions.RequestException as e:
-                    self.logger.error(f"Request failed for {tbd_url}: {e}")
-                    break  # give up on this url
+            # robots.txt check
+            if not self.report.isAllowedByRobots(tbd_url, fetch=self._download_with_retry):
+                self.frontier.mark_url_complete(tbd_url)
+                continue
 
+            # download the page through the cache server
+            resp = self._download_with_retry(tbd_url)
             if resp is None:
                 self.frontier.mark_url_complete(tbd_url)
                 continue
@@ -61,13 +62,9 @@ class Worker(Thread):
             self.logger.info(
                 f"Downloaded {tbd_url}, status <{resp.status}>, "
                 f"using cache {self.config.cache_server}.")
-            scraped_urls = scraper.scraper(tbd_url, report, resp)
-            for scraped_url in scraped_urls:
+
+            # scrape, enqueue new links, mark done
+            for scraped_url in scraper.scraper(tbd_url, self.report, resp):
                 self.frontier.add_url(scraped_url)
             self.frontier.mark_url_complete(tbd_url)
             time.sleep(self.config.time_delay)
-        print("============REPORT============")
-        print("unique pages:", len(report.visited_urls))
-        print("longest page:", report.longest_webpage)
-        print("top 50 words:", report.getMostCommonWords())
-        print("subdomain count:", report.getURLSubdomainCount())

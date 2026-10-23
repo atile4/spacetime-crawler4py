@@ -7,6 +7,7 @@ from text_processing import computeWordFrequencies, tokenize
 from page_filters import is_trap
 
 from urllib.robotparser import RobotFileParser
+import threading
 
 class Report:
     def __init__(self):
@@ -15,26 +16,42 @@ class Report:
         self.token_frequency_table = dict()
         self.url_subdomain_count = dict()
         self._robot_rules = dict()
+        self._lock = threading.Lock()        # guards the stats
+        self._robot_lock = threading.Lock()  # guards the robots cache
+        self.visited_urls = set()
 
+    def isAllowedByRobots(self, url, fetch, user_agent='*') -> bool:
+        parts = urlparse(url)
+        robot_url = f"{parts.scheme}://{parts.netloc}/robots.txt"
+        with self._robot_lock:  # one fetch per host, others wait briefly
+            rp = self._robot_rules.get(robot_url)
+            if rp is None:
+                rp = self._buildParser(robot_url, fetch)
+                self._robot_rules[robot_url] = rp   # cached even on failure
+        return rp.can_fetch(user_agent, url)
+
+    def _buildParser(self, robot_url, fetch):
+        rp = RobotFileParser(robot_url)
+        resp = fetch(robot_url)
+        if resp is not None and resp.status == 200 and resp.raw_response is not None:
+            text = resp.raw_response.content.decode("utf-8", errors="ignore")
+            rp.parse(text.splitlines())
+        elif resp is not None and resp.status in (401, 403):
+            rp.parse(["User-agent: *", "Disallow: /"])
+        else:                       # no response, 404, 5xx, etc.
+            rp.parse(["User-agent: *", "Allow: /"])
+        return rp
 
     def visitSite(self, url, soup):
-        # use isValid before calling this method;
-        # robots helper no longer does that check
-        if url in self.visited_urls: return None
-        parts = urlparse(url)
-        base_url = f"{parts.scheme}://{parts.netloc}"
-        if not self._urlAllowedByRobotTxt(url, base_url): return None
-
-        self.visited_urls.add(url)
-
-
         tokens = tokenize(soup.get_text(" ", strip=True))
-        num_tokens = len(tokens)
         token_freq = computeWordFrequencies(tokens=tokens)
-
-        self._updateWordFrequencies(token_freq)
-        self._incrementSubdomainCount(base_url)
-        self._checkIfLongestPage(url, num_tokens)
+        base_url = f"{urlparse(url).scheme}://{urlparse(url).netloc}"
+        with self._lock:
+            if url in self.visited_urls: return
+            self.visited_urls.add(url)
+            self._updateWordFrequencies(token_freq)
+            self._incrementSubdomainCount(base_url)
+            self._checkIfLongestPage(url, len(tokens))
 
     def getNumVisitedURLs(self) -> int:
         return len(self.visited_urls)
