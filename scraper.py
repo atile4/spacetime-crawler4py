@@ -6,67 +6,103 @@ from bs4 import BeautifulSoup
 from text_processing import computeWordFrequencies, tokenize
 from page_filters import is_trap
 
+from urllib.robotparser import RobotFileParser
+
 class Report:
     def __init__(self):
         self.visited_urls = set()
-        self.url_subdomain_count = dict()
-        self.token_frequency_table = dict()
         self.longest_webpage = ('', -1)
+        self.token_frequency_table = dict()
+        self.url_subdomain_count = dict()
+        self._robot_rules = dict()
 
-    def visitedSite(self):
-        self
+
+    def visitSite(self, url, soup):
+        # use isValid before calling this method;
+        # robots helper no longer does that check
+        if url in self.visited_urls: return None
+        parts = urlparse(url)
+        base_url = f"{parts.scheme}://{parts.netloc}"
+        if not self._urlAllowedByRobotTxt(url, base_url): return None
+
+        self.visited_urls.add(url)
+
+
+        tokens = tokenize(soup.get_text(" ", strip=True))
+        num_tokens = len(tokens)
+        token_freq = computeWordFrequencies(tokens=tokens)
+
+        self._updateWordFrequencies(token_freq)
+        self._incrementSubdomainCount(base_url)
+        self._checkIfLongestPage(url, num_tokens)
 
     def getNumVisitedURLs(self) -> int:
         return len(self.visited_urls)
     
-    def getMostCommonWords(self, count = 50) -> dict[str, int]:
-        return dict(list(self.token_frequency_table.items())[:50])
+    def getLongestWebpage(self):
+        return self.longest_webpage
 
-    def updateWordFrequencies(self, map: dict[str, int]) -> None:
+    def getMostCommonWords(self, count = 50) -> list[tuple[str, int]]:
+        # returns most common words as a sorted list of tuples
+        return sorted(self.token_frequency_table.items(),
+            key=lambda item: (-item[1], item[0]))[:count]
+
+    def getURLSubdomainCount(self) -> list[tuple[str, int]]:
+        # returns subdomains as a sorted list of tuples
+        return sorted(self.url_subdomain_count.items(),
+            key=lambda item: (-item[1], item[0]))
+
+    def _updateWordFrequencies(self, map: dict[str, int]) -> None:
         for token, freq in map.items():
             self.token_frequency_table[token] = self.token_frequency_table.get(token, 0) + freq
     
-    def _incrementSubdomainCount(self, url: str):
-        base_url = ...
-        try:
-            self.token_frequency_table[base_url] += 1
-        except KeyError:
-            self.token_frequency_table[base_url] = 1
-        ...
-
-    def checkIfLongestPage(self, url: str, tokens_count: int):
+    def _incrementSubdomainCount(self, base_url: str):
+        if base_url in self.url_subdomain_count:
+            self.url_subdomain_count[base_url] += 1
+        else:
+            self.url_subdomain_count[base_url] = 1    
+        
+    def _checkIfLongestPage(self, url: str, tokens_count: int):
         if self.longest_webpage[1] < tokens_count:
             self.longest_webpage = (url, tokens_count)
+
+    def _urlAllowedByRobotTxt(self, url : str, base_url: str, user_agent = '*') -> bool:
+        """
+        Returns if string is valid and is not disallowed in the base_url's robots.txt
+        """
+        robot_url = f'{base_url}/robots.txt'
+        # Read and parse robots.txt
+        if robot_url in self._robot_rules:
+            return self._robot_rules[robot_url].can_fetch(user_agent, url)
+
+        rp = RobotFileParser(robot_url)
+        try:
+            rp.read()
+        except Exception as e:
+            # return True on error; no robots.txt to deny entry
+            print(f'Returned True after exception encountered accessing robots.txt of {base_url}:', e)
+            return True
+
+        # @TODO potential optimization:
+        # store disallowed urls in a dictionary that maps str base urls to a set of their disallowed urls
+
+        # check if url is allowed
+        self._robot_rules[robot_url] = rp
+        return rp.can_fetch(user_agent, url) 
 
 def scraper(url, report : Report, resp) -> list[str]: 
     # check whether response is sucessful or if there is no content -> if not return
     if resp.status != 200 or resp.raw_response is None:
         return []
+    if not is_valid(url): return []
 
     soup = BeautifulSoup(resp.raw_response.content, 'html.parser')
 
     links = extract_next_links(url, resp, soup)
 
-    # @TODO logic for adding unique pages, longest page, most common words, and subdomains
-    parse_text_and_update_report(url, soup, report)
+    report.visitSite(url, soup)
 
     return [link for link in links if is_valid(link)]
-
-def parse_text_and_update_report(url : str, soup : BeautifulSoup, report : Report):
-    # update visited URL set
-    if url in report.visited_urls: # if already in, don't count
-        return
-
-    report.visited_urls.add(url)
-    tokens = tokenize(soup.get_text(" ", strip=True))
-
-    # update if longest page
-    report.checkIfLongestPage(url, len(tokens))
-
-    # compute and update word frequencies
-    map = computeWordFrequencies(tokens=tokens)
-    report.updateWordFrequencies(map)
-
 
 def extract_next_links(url, resp, soup):
     """

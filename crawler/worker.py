@@ -32,7 +32,7 @@ class Worker(Thread):
 
     def run(self):
         report = scraper.Report()
-        retry_delay = 30
+        RETRY_DELAY = 5
 
         while True:  
             tbd_url = self.frontier.get_tbd_url()
@@ -41,32 +41,20 @@ class Worker(Thread):
                 break
 
             # attempt to connect to cache server and download text
-            try:
-                resp = download(tbd_url, self.config, self.logger)
-            except requests.exceptions.ConnectTimeout: # server is unreachable
-                self.logger.error(
-                    f"Timed out connecting to cache server {self.config.cache_server} "
-                    f"while fetching {tbd_url}. Retrying in {retry_delay}s.")
-                time.sleep(retry_delay)
-                continue
-            except requests.exceptions.ConnectionError as e:   # unable to connect to cache server
-                self.logger.error(
-                    f"Cannot connect to cache server {self.config.cache_server} "
-                    f"while fetching {tbd_url}: {e}. Retrying in {retry_delay}s.")
-                time.sleep(retry_delay)
-                continue
-            except requests.exceptions.Timeout:  # server timed out while reading the URL
-                self.logger.error(
-                    f"Cache server {self.config.cache_server} timed out reading "
-                    f"{tbd_url}. Retrying in {retry_delay}s.")
-                time.sleep(retry_delay)
-                continue
-            except requests.exceptions.HTTPError as e: # avoid retrying forever
-                self.logger.error(f"HTTP error while fetching {tbd_url}: {e}")
-                self.frontier.mark_url_complete(tbd_url) 
-                continue
-            except requests.exceptions.RequestException as e:
-                self.logger.error(f"Request failed for {tbd_url}: {e}")
+            resp = None
+            while resp is None:
+                try:
+                    resp = download(tbd_url, self.config, self.logger)
+                except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+                    self.logger.error(
+                        f"Cache server {self.config.cache_server} unreachable "
+                        f"({type(e).__name__}) while fetching {tbd_url}. Retrying in {RETRY_DELAY}s.")
+                    time.sleep(RETRY_DELAY)  # loop again with the SAME url
+                except requests.exceptions.RequestException as e:
+                    self.logger.error(f"Request failed for {tbd_url}: {e}")
+                    break  # give up on this url
+
+            if resp is None:
                 self.frontier.mark_url_complete(tbd_url)
                 continue
 
@@ -82,3 +70,4 @@ class Worker(Thread):
         print("unique pages:", len(report.visited_urls))
         print("longest page:", report.longest_webpage)
         print("top 50 words:", report.getMostCommonWords())
+        print("subdomain count:", report.getURLSubdomainCount())
