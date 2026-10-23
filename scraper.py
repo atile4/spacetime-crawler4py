@@ -54,6 +54,9 @@ def scraper(url, report : Report, resp) -> list[str]:
 
 def parse_text_and_update_report(url : str, soup : BeautifulSoup, report : Report):
     # update visited URL set
+    if url in report.visited_urls: # if already in, don't count
+        return
+
     report.visited_urls.add(url)
     tokens = tokenize(soup.get_text(" ", strip=True))
 
