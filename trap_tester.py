@@ -24,12 +24,23 @@ def test_junk_parameters_blocked():
     assert pf.is_trap("https://t2.ics.uci.edu/p?PHPSESSID=abc") is True
 
 
-def test_template_limit_cuts_off_calendar():
-    urls = [f"https://cal.ics.uci.edu/events/2026-10-{i:03d}" for i in range(305)]
+def test_template_limit_cuts_off_numbered_pages():
+    limit = pf.MAX_URLS_PER_TEMPLATE
+    urls = [f"https://pubs.ics.uci.edu/publications/{i}" for i in range(limit + 5)]
     results = [pf.is_trap(u) for u in urls]
-    assert not any(results[:300])
-    assert all(results[300:])
+    assert not any(results[:limit])
+    assert all(results[limit:])
 
+
+def test_calendar_urls_get_lower_limit():
+    limit = pf.MAX_CALENDAR_URLS
+    urls = [
+        f"https://wics.ics.uci.edu/events/day/{2010 + i // 12}-{i % 12 + 1:02d}-01"
+        for i in range(limit + 5)
+    ]
+    results = [pf.is_trap(u) for u in urls]
+    assert not any(results[:limit])
+    assert all(results[limit:])
 
 def test_repeat_sightings_do_not_inflate_count():
     for _ in range(1000):

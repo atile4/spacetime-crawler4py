@@ -21,11 +21,19 @@ Ex. /page/..., /calendar/...
 import re
 from collections import defaultdict
 from urllib.parse import urlparse, parse_qsl
+from datetime import datetime 
+from text_processing import tokenize
 
+# trap function variables
 MAX_URL_LENGTH = 200
 MAX_PATH_DEPTH = 10
 MAX_QUERY_PARAMS = 4
-MAX_URLS_PER_TEMPLATE = 300
+MAX_URLS_PER_TEMPLATE = 30
+MAX_CALENDAR_URLS = 10 
+
+# page-quality. checker variables
+MIN_WORDS = 50
+MAX_CONTENT_BYTES = 2 * 1024 * 1024
 
 JUNK_PARAMS = {
     "sid", "sessionid", "session_id", "phpsessid", "jsessionid",
@@ -47,6 +55,26 @@ def template_of(parsed, params):
     names = tuple(sorted(key for key, _ in params))
     return (parsed.netloc, shape, names)
 
+# regex pattern to find dates formatted yyyy-mm or yyyy-mm-dd
+DATE_RE = re.compile(r"(?<!\d)\d{4}-\d{2}(?:-\d{2})?(?!\d)")
+
+def is_calendar_date(url):
+    parsed = urlparse(url)
+
+    for match in DATE_RE.finditer(parsed.path):
+        date = match.group() # getting just the matched text from obj
+
+        try:
+            if len(date) == 10:
+                datetime.strptime(date, "%Y-%m-%d") #can raise an exception if it can't b stripped as date fromat
+            else:
+                datetime.strptime(date, "%Y-%m") #can raise an exception if it can't b stripped as date fromat
+            return True
+        
+        except ValueError:
+            continue
+
+    return False
 
 def is_trap(url):
     try:
@@ -67,14 +95,41 @@ def is_trap(url):
 
     if len(params) > MAX_QUERY_PARAMS:
         return True
+    
     if any(key.lower() in JUNK_PARAMS for key, _ in params):
         return True
-
+    
     template = template_of(parsed, params)
+    limit = MAX_URLS_PER_TEMPLATE
+
+    if is_calendar_date(url):
+        limit = MAX_CALENDAR_URLS
+
     if url not in seen_urls:
         seen_urls.add(url)
         template_counts[template] += 1
-    if template_counts[template] > MAX_URLS_PER_TEMPLATE:
+    
+    if template_counts[template] > limit:
         return True
 
     return False
+
+
+def low_value_reason(resp, text):
+    raw = resp.raw_response
+
+    if raw is None or not raw.content:
+        return "empty page"
+
+    content_type = raw.headers.get("Content-Type", "").lower()
+    if content_type and "html" not in content_type:
+        return f"not html ({content_type.split(';')[0]})"
+
+    if len(raw.content) > MAX_CONTENT_BYTES:
+        return "too large"
+
+    tokens = tokenize(text)
+    if len(tokens) < MIN_WORDS:
+        return f"too few words ({len(tokens)})"
+
+    return None
