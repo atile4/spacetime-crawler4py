@@ -183,11 +183,9 @@ def scraper(url, report : Report, resp) -> list[str]:
     soup = BeautifulSoup(resp.raw_response.content, 'html.parser')
     paragraphs = soup.find_all("p")
 
-    p_text = ""
-    for p in paragraphs:
-        p_text.join(p.get_text(" ", strip=True)) 
+    article_content = soup.article.get_text(" ", strip=True) if soup.article else ""
 
-    reason = low_value_reason(resp, p_text)
+    reason = low_value_reason(resp, article_content)
 
     if reason:
         print(f"Skipped {url}: {reason}")

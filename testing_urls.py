@@ -32,7 +32,7 @@ if resp.raw_response is not None:
     main = soup.main.get_text(" ", strip=True) if soup.main else ""
     paragraphs = soup.find_all("p")
     text = " ".join(p.get_text(" ", strip=True) for p in paragraphs)
-
+    article = soup.article.get_text(" ", strip=True) if soup.article else ""
     print("Extracted text:", repr(text))
     print("Word count:", len(text.split()))
     print("BODY:", repr(body))
@@ -41,7 +41,7 @@ if resp.raw_response is not None:
     print("Word count:", len(main.split()))
     print("P TEXT:", repr(text))
     print("Word count:", len(text.split()))
-    
-    print("ARTICLE:", soup.article.get_text(" ", strip=True)[:500] if soup.article else None)
+    print("ARTICLE:", article)
+    print("Word count:", len(article.split()))
 else:
     print("No raw response!")

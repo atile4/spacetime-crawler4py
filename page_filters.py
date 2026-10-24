@@ -128,8 +128,7 @@ def low_value_reason(resp, text):
     if len(raw.content) > MAX_CONTENT_BYTES:
         return "too large"
 
-    tokens = tokenize(text)
-    if len(tokens) < MIN_WORDS:
-        return f"too few words ({len(tokens)})"
+    if len(text.split()) < MIN_WORDS:
+        return f"too few words ({len(text.split())})"
 
     return None
