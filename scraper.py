@@ -33,7 +33,7 @@ class Report:
                     "visited": list(self.visited_urls),
                     "long": self.longest_webpage,
                     "token": self.token_frequency_table.copy(),
-                    "subdomain": self.url_subdomain_count.copy()
+                    "subdomain": dict(sorted(self.url_subdomain_count.items())) # sorting in json file for me purposes
                 }
             # temporarily creating a file name so we don't overwrite old data
             temp = file_name + '.tmp'
@@ -209,7 +209,6 @@ def extract_next_links(url, resp, soup):
         if not temp.strip(): 
             continue
         # appending links to list, joining links so relative becomes absolute
-
         try: 
             temp = urljoin(resp.url, temp).split("#")[0] #removing the url fragment
             hyper_links.append(temp)
