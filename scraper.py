@@ -9,8 +9,6 @@ from page_filters import is_trap, low_value_reason
 from urllib.robotparser import RobotFileParser
 import threading
 
-
-
 class Report:
     def __init__(self):
         self.visited_urls = set()
@@ -111,13 +109,14 @@ class Report:
 
 def scraper(url, report : Report, resp) -> list[str]: 
     # check whether response is sucessful or if there is no content -> if not return
-    if resp.status != 200 or resp.raw_response is None:
-        return []
+    if resp.status != 200 or resp.raw_response is None: return []
+    
     if not is_valid(url): return []
 
     soup = BeautifulSoup(resp.raw_response.content, 'html.parser')
 
     reason = low_value_reason(resp, soup.get_text(" ", strip=True))
+    
     if reason:
         print(f"Skipped {url}: {reason}")
         return []
