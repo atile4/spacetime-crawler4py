@@ -67,6 +67,14 @@ class Report:
             self.token_frequency_table = dict(data["token"])
             self.url_subdomain_count = dict(data["subdomain"])
 
+    def _print_report(self):
+            return(
+            f"============REPORT============\n"
+            f"unique pages: {self.getNumVisitedURLs()}\n"
+            f"longest page: {self.getLongestWebpage()}\n"
+            f"top 50 words: {self.getMostCommonWords()}\n"
+            f"subdomain count: {self.getURLSubdomainCount()}\n")
+
     def isAllowedByRobots(self, url, fetch, user_agent='*') -> bool:
         parts = urlparse(url)
         robot_url = f"{parts.scheme}://{parts.netloc}/robots.txt"

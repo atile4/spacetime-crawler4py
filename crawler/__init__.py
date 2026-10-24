@@ -28,12 +28,8 @@ class Crawler(object):
     def join(self):
         for worker in self.workers:
             worker.join()
-        self.report.save_report()
-        self._print_report()            # runs once, after every worker is done
 
-    def _print_report(self):
-        print("============REPORT============")
-        print("unique pages:", self.report.getNumVisitedURLs())
-        print("longest page:", self.report.getLongestWebpage())
-        print("top 50 words:", self.report.getMostCommonWords())
-        print("subdomain count:", self.report.getURLSubdomainCount())
+        self.report.save_report()
+        with open("report_files/report.txt", "w", encoding="utf-8") as file:
+            file.write(self.report._print_report())
+        print(self.report._print_report())           # runs once, after every worker is done
