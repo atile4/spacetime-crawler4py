@@ -181,15 +181,19 @@ def scraper(url, report : Report, resp) -> list[str]:
 
 
     soup = BeautifulSoup(resp.raw_response.content, 'html.parser')
+    paragraphs = soup.find_all("p")
 
-    reason = low_value_reason(resp, soup.get_text(" ", strip=True))
+    p_text = ""
+    for p in paragraphs:
+        p_text.join(p.get_text(" ", strip=True)) 
+
+    reason = low_value_reason(resp, p_text)
 
     if reason:
         print(f"Skipped {url}: {reason}")
         return []
 
     links = extract_next_links(url, resp, soup)
-
     report.visitSite(url, soup)
 
     return [link for link in links if is_valid(link)]
