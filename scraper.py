@@ -1,6 +1,11 @@
 import re
+import json
+import os
+
 from urllib.parse import urlparse
 from urllib.parse import urljoin
+from urllib.parse import urldefrag
+
 from bs4 import BeautifulSoup
 
 from text_processing import computeWordFrequencies, tokenize
@@ -10,7 +15,7 @@ from urllib.robotparser import RobotFileParser
 import threading
 
 class Report:
-    def __init__(self):
+    def __init__(self): 
         self.visited_urls = set()
         self.longest_webpage = ('', -1)
         self.token_frequency_table = dict()
@@ -19,6 +24,12 @@ class Report:
         self._lock = threading.Lock()        # guards the stats
         self._robot_lock = threading.Lock()  # guards the robots cache
         self.visited_urls = set()
+
+    def save_report():
+        pass
+
+    def load_report():
+        pass
 
     def isAllowedByRobots(self, url, fetch, user_agent='*') -> bool:
         parts = urlparse(url)
@@ -109,13 +120,14 @@ class Report:
 
 def scraper(url, report : Report, resp) -> list[str]: 
     # check whether response is sucessful or if there is no content -> if not return
-    if resp.status != 200 or resp.raw_response is None:
-        return []
+    if resp.status != 200 or resp.raw_response is None: return []
+    
     if not is_valid(url): return []
 
     soup = BeautifulSoup(resp.raw_response.content, 'html.parser')
 
     reason = low_value_reason(resp, soup.get_text(" ", strip=True))
+
     if reason:
         print(f"Skipped {url}: {reason}")
         return []
