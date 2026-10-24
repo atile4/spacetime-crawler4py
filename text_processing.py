@@ -1,3 +1,5 @@
+import string
+
 def tokenize(raw_text : str) -> list[str]:
     # to account for possessive/shortened words
     raw_text = raw_text.lower().replace("'", "") 
@@ -8,8 +10,8 @@ def tokenize(raw_text : str) -> list[str]:
 
     return tokens
 
-stopwords = {
-    "a", "about", "above", "after", "again", "against", "all", "am", "an", "and",
+stopwords = { 
+    "about", "above", "after", "again", "against", "all", "am", "an", "and",
     "any", "are", "arent", "as", "at", "be", "because", "been", "before", "being",
     "below", "between", "both", "but", "by", "cant", "cannot", "could", "couldnt",
     "did", "didnt", "do", "does", "doesnt", "doing", "dont", "down", "during",
@@ -29,7 +31,8 @@ stopwords = {
     "while", "who", "whos", "whom", "why", "whys", "with", "wont", "would",
     "wouldnt", "you", "youd", "youll", "youre", "youve", "your", "yours",
     "yourself", "yourselves"
-}
+} | set(string.ascii_lowercase) 
+
 
 def computeWordFrequencies(tokens : list[str]) -> dict[str, int] :
     # resulting freq map

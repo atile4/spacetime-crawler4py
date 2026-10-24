@@ -35,19 +35,16 @@ class Report:
                     "token": self.token_frequency_table.copy(),
                     "subdomain": self.url_subdomain_count.copy()
                 }
-
             # temporarily creating a file name so we don't overwrite old data
             temp = file_name + '.tmp'
-
             # open the temporary file in write mode
             with open(temp, "w", encoding="utf-8") as file:
                 # write dict into temp file for crashes
                 json.dump(data, file, indent=2)
-
             # replace the old json file with the temporary one
             os.replace(temp, file_name)
-        
 
+        
     def load_report(self, file_name="report_files/report.json"):
         # if file not found
         if not os.path.exists(file_name):
@@ -56,7 +53,6 @@ class Report:
         with open(file_name, "r", encoding="utf-8") as file:
             # getting data 
             data = json.load(file)
-
         # check if our dictionary is empty
         if not data:
             return
@@ -67,6 +63,7 @@ class Report:
             self.token_frequency_table = dict(data["token"])
             self.url_subdomain_count = dict(data["subdomain"])
 
+
     def _print_report(self):
             return(
             f"============REPORT============\n"
@@ -74,6 +71,7 @@ class Report:
             f"longest page: {self.getLongestWebpage()}\n"
             f"top 50 words: {self.getMostCommonWords()}\n"
             f"subdomain count: {self.getURLSubdomainCount()}\n")
+
 
     def isAllowedByRobots(self, url, fetch, user_agent='*') -> bool:
         parts = urlparse(url)
@@ -84,6 +82,7 @@ class Report:
                 rp = self._buildParser(robot_url, fetch)
                 self._robot_rules[robot_url] = rp   # cached even on failure
         return rp.can_fetch(user_agent, url)
+
 
     def _buildParser(self, robot_url, fetch):
         rp = RobotFileParser(robot_url)
@@ -96,6 +95,7 @@ class Report:
         else:                       # no response, 404, 5xx, etc.
             rp.parse(["User-agent: *", "Allow: /"])
         return rp
+
 
     def visitSite(self, url, soup):
         tokens = tokenize(soup.get_text(" ", strip=True))
@@ -111,33 +111,39 @@ class Report:
 
     def getNumVisitedURLs(self) -> int:
         return len(self.visited_urls)
-    
+
+
     def getLongestWebpage(self):
         return self.longest_webpage
 
+
     def getMostCommonWords(self, count = 50) -> list[tuple[str, int]]:
-        # returns most common words as a sorted list of tuples
+        # returns most common words as a sorted list of tuples by frequency
         return sorted(self.token_frequency_table.items(),
             key=lambda item: (-item[1], item[0]))[:count]
 
+
     def getURLSubdomainCount(self) -> list[tuple[str, int]]:
-        # returns subdomains as a sorted list of tuples
-        return sorted(self.url_subdomain_count.items(),
-            key=lambda item: (-item[1], item[0]))
+        # returns subdomains as a sorted list of tuples in alphabetical order
+        return sorted(self.url_subdomain_count.items())
+
 
     def _updateWordFrequencies(self, map: dict[str, int]) -> None:
         for token, freq in map.items():
             self.token_frequency_table[token] = self.token_frequency_table.get(token, 0) + freq
+
     
     def _incrementSubdomainCount(self, base_url: str):
         if base_url in self.url_subdomain_count:
             self.url_subdomain_count[base_url] += 1
         else:
             self.url_subdomain_count[base_url] = 1    
+
         
     def _checkIfLongestPage(self, url: str, tokens_count: int):
         if self.longest_webpage[1] < tokens_count:
             self.longest_webpage = (url, tokens_count)
+
 
     def _urlAllowedByRobotTxt(self, url : str, base_url: str, user_agent = '*') -> bool:
         """
