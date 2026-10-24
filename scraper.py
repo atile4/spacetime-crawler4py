@@ -23,13 +23,35 @@ class Report:
         self._robot_rules = dict()
         self._lock = threading.Lock()        # guards the stats
         self._robot_lock = threading.Lock()  # guards the robots cache
-        self.visited_urls = set()
 
-    def save_report():
-        pass
+    def save_report(self, file_name="report.json"):
+        # save the data we want into a dictionary
+        data = {
+        }
+
+        # temporarily creating a file name so we don't overwrite old data
+
+        # open the temporary file in write mode
+
+        # convert our dictionary into JSON and write it into the temporary file -> just incase of crashes and we lose all our data
+
+        # once the temporary file is finished writing replace the old JSON file with the temporary one
+        
 
     def load_report():
-        pass
+        # open json file in read mode
+
+        # convert the json data back into a python dictionary
+
+        # check if our dictionary is empty
+
+        # restore our visited urls -> convert the list back into a set
+
+        # restore our longest webpage -> convert the list back into a tuple
+
+        # restore our word frequency dictionary 
+
+        # restore our subdomain count dictionary
 
     def isAllowedByRobots(self, url, fetch, user_agent='*') -> bool:
         parts = urlparse(url)
