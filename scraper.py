@@ -183,7 +183,7 @@ def scraper(url, report : Report, resp) -> list[str]:
     soup = BeautifulSoup(resp.raw_response.content, 'html.parser')
     paragraphs = soup.find_all("p")
 
-    article_content = soup.article.get_text(" ", strip=True) if soup.article else ""
+    article_content = article_content = (soup.article.get_text(" ", strip=True) if soup.article else soup.get_text(" ", strip=True))
 
     reason = low_value_reason(resp, article_content)
 
