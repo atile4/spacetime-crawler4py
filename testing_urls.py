@@ -30,7 +30,7 @@ if resp.raw_response is not None:
     soup = BeautifulSoup(resp.raw_response.content, "html.parser")
     text = soup.get_text(" ", strip=True)
 
-    print("Extracted text:", repr(text))
+    print("Extracted text:", repr(text[:500]))
     print("Word count:", len(text.split()))
 else:
     print("No raw response!")
