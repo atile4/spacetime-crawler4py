@@ -172,8 +172,13 @@ class Report:
 def scraper(url, report : Report, resp) -> list[str]: 
     # check whether response is sucessful or if there is no content -> if not return
     if resp.status != 200 or resp.raw_response is None: return []
+
+    # checking whether this isn't an image or any other type with no info
+    content_type = resp.raw_response.headers.get("Content-Type", "").lower()
+    if "text/html" not in content_type: return [] 
     
     if not is_valid(url): return []
+
 
     soup = BeautifulSoup(resp.raw_response.content, 'html.parser')
 
