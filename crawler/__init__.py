@@ -10,7 +10,9 @@ class Crawler(object):
         self.frontier = frontier_factory(config, restart)
         self.workers = list()
         self.worker_factory = worker_factory
-        self.report = Report()          # one shared report for all workers
+        self.report = Report() # one shared report for all workers
+        if not restart: # load saved report
+            self.report.load_report()
 
     def start_async(self):
         self.workers = [
@@ -26,6 +28,7 @@ class Crawler(object):
     def join(self):
         for worker in self.workers:
             worker.join()
+        self.report.save_report()
         self._print_report()            # runs once, after every worker is done
 
     def _print_report(self):

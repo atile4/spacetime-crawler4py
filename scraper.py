@@ -23,35 +23,49 @@ class Report:
         self._robot_rules = dict()
         self._lock = threading.Lock()        # guards the stats
         self._robot_lock = threading.Lock()  # guards the robots cache
+        self._save_lock = threading.Lock() # guards file saving
 
-    def save_report(self, file_name="report.json"):
+    def save_report(self, file_name="report_files/report.json"):
         # save the data we want into a dictionary
-        data = {
-        }
+        with self._save_lock:
+            with self._lock:
+                data = {
+                    "visited": list(self.visited_urls),
+                    "long": self.longest_webpage,
+                    "token": self.token_frequency_table.copy(),
+                    "subdomain": self.url_subdomain_count.copy()
+                }
 
-        # temporarily creating a file name so we don't overwrite old data
+            # temporarily creating a file name so we don't overwrite old data
+            temp = file_name + '.tmp'
 
-        # open the temporary file in write mode
+            # open the temporary file in write mode
+            with open(temp, "w", encoding="utf-8") as file:
+                # write dict into temp file for crashes
+                json.dump(data, file, indent=2)
 
-        # convert our dictionary into JSON and write it into the temporary file -> just incase of crashes and we lose all our data
-
-        # once the temporary file is finished writing replace the old JSON file with the temporary one
+            # replace the old json file with the temporary one
+            os.replace(temp, file_name)
         
 
-    def load_report():
+    def load_report(self, file_name="report_files/report.json"):
+        # if file not found
+        if not os.path.exists(file_name):
+            return
         # open json file in read mode
-
-        # convert the json data back into a python dictionary
+        with open(file_name, "r", encoding="utf-8") as file:
+            # getting data 
+            data = json.load(file)
 
         # check if our dictionary is empty
-
-        # restore our visited urls -> convert the list back into a set
-
-        # restore our longest webpage -> convert the list back into a tuple
-
-        # restore our word frequency dictionary 
-
-        # restore our subdomain count dictionary
+        if not data:
+            return
+        with self._lock:
+            # restoring data
+            self.visited_urls = set(data["visited"])
+            self.longest_webpage = tuple(data["long"])
+            self.token_frequency_table = dict(data["token"])
+            self.url_subdomain_count = dict(data["subdomain"])
 
     def isAllowedByRobots(self, url, fetch, user_agent='*') -> bool:
         parts = urlparse(url)
@@ -85,6 +99,12 @@ class Report:
             self._updateWordFrequencies(token_freq)
             self._incrementSubdomainCount(base_url)
             self._checkIfLongestPage(url, len(tokens))
+            print(
+            f"\n--- REPORT STATS ---\n"
+            f"Unique pages: {len(self.visited_urls)}\n"
+            f"Longest page: {self.longest_webpage}\n"
+            f"Unique words: {len(self.token_frequency_table)}\n"
+            f"Subdomains: {len(self.url_subdomain_count)}\n")
 
     def getNumVisitedURLs(self) -> int:
         return len(self.visited_urls)
