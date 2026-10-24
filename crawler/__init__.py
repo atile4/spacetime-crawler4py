@@ -13,6 +13,9 @@ class Crawler(object):
         self.report = Report() # one shared report for all workers
         if not restart: # load saved report
             self.report.load_report()
+        else: # restart previous progress if any
+            self.report.save_report() 
+            open("report_files/report.txt", "w").close()
 
     def start_async(self):
         self.workers = [
