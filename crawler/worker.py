@@ -68,5 +68,9 @@ class Worker(Thread):
                 self.frontier.add_url(scraped_url)
 
             self.report.save_report() # saving report of urls stats
+            with self.report._save_lock:
+                with open("report_files/report.txt", "w", encoding="utf-8") as file:
+                    file.write(self.report._print_report())
+    
             self.frontier.mark_url_complete(tbd_url)
             time.sleep(self.config.time_delay)

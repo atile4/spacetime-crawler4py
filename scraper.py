@@ -108,6 +108,7 @@ class Report:
             self._incrementSubdomainCount(base_url)
             self._checkIfLongestPage(url, len(tokens))
 
+
     def getNumVisitedURLs(self) -> int:
         return len(self.visited_urls)
     
