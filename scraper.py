@@ -99,12 +99,6 @@ class Report:
             self._updateWordFrequencies(token_freq)
             self._incrementSubdomainCount(base_url)
             self._checkIfLongestPage(url, len(tokens))
-            print(
-            f"\n--- REPORT STATS ---\n"
-            f"Unique pages: {len(self.visited_urls)}\n"
-            f"Longest page: {self.longest_webpage}\n"
-            f"Unique words: {len(self.token_frequency_table)}\n"
-            f"Subdomains: {len(self.url_subdomain_count)}\n")
 
     def getNumVisitedURLs(self) -> int:
         return len(self.visited_urls)
