@@ -15,8 +15,13 @@ config = Config(parser)
 config.cache_server = get_cache_server(config, False)
 
 resp = download(url, config, get_logger("CRAWLER"))
+print("Requested URL:", url) # to test for redirects
+print("Response URL:", resp.url) # to test for redirects
 
 if resp.raw_response is not None:
+    print("Final URL:", resp.raw_response.url) # to test for redirects
+    print("Status:", resp.status)
+    print("Redirect history:", resp.raw_response.history)
     print("Status:", resp.status)
     print("Content-Type:", resp.raw_response.headers.get("Content-Type"))
     print("File size:", len(resp.raw_response.content), "bytes")
