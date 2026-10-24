@@ -1,10 +1,11 @@
 import requests
+from utils.config import Config
 from bs4 import BeautifulSoup
 from utils.download import download
 from utils import get_logger
 
 url = "http://www.ics.uci.edu/~dsm/dyn/release/files/zImage_paapi"
-resp = download(url, "config.ini", get_logger("CRAWLER"))
+resp = download(url, Config("config.ini"), get_logger("CRAWLER"))
 
 print("Status:", resp.status)
 
