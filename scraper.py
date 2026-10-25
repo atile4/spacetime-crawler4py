@@ -98,15 +98,21 @@ class Report:
 
 
     def visitSite(self, url, soup):
+        ICS_DOMAIN = re.compile(r"^(?:[a-z0-9-]+\.)*ics\.uci\.edu$")
+
         tokens = tokenize(soup.get_text(" ", strip=True))
         token_freq = computeWordFrequencies(tokens=tokens)
-        base_url = f"{urlparse(url).scheme}://{urlparse(url).netloc}"
+        parsed = urlparse(url)
+
         with self._lock:
             if url in self.visited_urls: return
             self.visited_urls.add(url)
             self._updateWordFrequencies(token_freq)
-            self._incrementSubdomainCount(base_url)
             self._checkIfLongestPage(url, len(tokens))
+
+            if ICS_DOMAIN.match(parsed.hostname): # only incrementing for ics.uci.edu domain
+                self._incrementSubdomainCount(parsed.hostname)
+            
 
 
     def getNumVisitedURLs(self) -> int:

@@ -105,13 +105,14 @@ def is_trap(url):
     if is_calendar_date(url):
         limit = MAX_CALENDAR_URLS
 
-    if url not in seen_urls:
-        seen_urls.add(url)
-        template_counts[template] += 1
-    
-    if template_counts[template] > limit:
+    if url in seen_urls:
+        return False
+
+    if template_counts[template] >= limit:
         return True
 
+    seen_urls.add(url)
+    template_counts[template] += 1
     return False
 
 
