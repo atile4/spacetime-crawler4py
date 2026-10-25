@@ -1,3 +1,4 @@
+
 from configparser import ConfigParser
 from bs4 import BeautifulSoup
 
@@ -6,7 +7,7 @@ from utils.download import download
 from utils import get_logger
 from utils.server_registration import get_cache_server
 
-url = "https://wiki.ics.uci.edu/doku.php/projects:maint-fall-2019"
+url = "http://www.ics.uci.edu/~dsm/dyn/release/files/zImage_paapi"
 
 parser = ConfigParser()
 parser.read("config.ini")
@@ -15,33 +16,49 @@ config = Config(parser)
 config.cache_server = get_cache_server(config, False)
 
 resp = download(url, config, get_logger("CRAWLER"))
-print("Requested URL:", url) # to test for redirects
-print("Response URL:", resp.url) # to test for redirects
+
+print("Requested URL:", url)
+print("Response URL:", resp.url)
+print("Status:", resp.status)
 
 if resp.raw_response is not None:
-    print("Final URL:", resp.raw_response.url) # to test for redirects
-    print("Redirect history:", resp.raw_response.history)
-    print("Status:", resp.status)
-    print("Content-Type:", resp.raw_response.headers.get("Content-Type"))
-    print("File size:", len(resp.raw_response.content), "bytes")
-    print("First 200 bytes:", resp.raw_response.content[:200])
+    response = resp.raw_response
+    raw = response.content
 
-    soup = BeautifulSoup(resp.raw_response.content, "html.parser")
+    print("Final URL:", response.url)
+    print("Redirect history:", response.history)
+    print("Content-Type:", response.headers.get("Content-Type"))
+    print("File size:", len(raw), "bytes")
+    print("First 80 bytes:", repr(raw[:80]))
+
+    # Test different character encodings
+    for encoding in ["utf-8", "utf-16-le", "utf-16-be", "utf-32-le", "utf-32-be"]:
+        print(f"\n--- {encoding.upper()} TEST ---")
+
+        try:
+            html = raw.decode(encoding)
+            soup = BeautifulSoup(html, "html.parser")
+            text = soup.get_text(" ", strip=True)
+
+            print("Decoded characters:", repr(html[:150]))
+            print("HTML tag found:", soup.find("html") is not None)
+            print("Body tag found:", soup.find("body") is not None)
+            print("Extracted text:", repr(text[:300]))
+            print("Word count:", len(text.split()))
+
+        except UnicodeError as e:
+            print("Decoding failed:", e)
+
+    # Compare with original parsing
+    print("\n--- ORIGINAL BEAUTIFULSOUP PARSING ---")
+
+    soup = BeautifulSoup(raw, "html.parser")
     text = soup.get_text(" ", strip=True)
-    body = soup.body.get_text(" ", strip=True) if soup.body else ""
-    main = soup.main.get_text(" ", strip=True) if soup.main else ""
-    paragraphs = soup.find_all("p")
-    text = " ".join(p.get_text(" ", strip=True) for p in paragraphs)
-    article = soup.article.get_text(" ", strip=True) if soup.article else ""
-    print("Extracted text:", repr(text))
+
+    print("Detected encoding:", soup.original_encoding)
+    print("HTML tag found:", soup.find("html") is not None)
+    print("Extracted text:", repr(text[:300]))
     print("Word count:", len(text.split()))
-    print("BODY:", repr(body))
-    print("Word count:", len(body.split()))
-    print("MAIN:", repr(main))
-    print("Word count:", len(main.split()))
-    print("P TEXT:", repr(text))
-    print("Word count:", len(text.split()))
-    print("ARTICLE:", article)
-    print("Word count:", len(article.split()))
+
 else:
     print("No raw response!")

@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 from urllib.parse import urljoin
 from urllib.parse import urldefrag
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, UnicodeDammit
 
 from text_processing import computeWordFrequencies, tokenize
 from page_filters import is_trap, low_value_reason
@@ -61,7 +61,14 @@ class Report:
             self.visited_urls = set(data["visited"])
             self.longest_webpage = tuple(data["long"])
             self.token_frequency_table = dict(data["token"])
-            self.url_subdomain_count = dict(data["subdomain"])
+            self.url_subdomain_count = {}
+            for key, count in data["subdomain"].items():
+                hostname = urlparse(key).hostname if "://" in key else key 
+
+                if hostname:
+                    self.url_subdomain_count[hostname] = (
+                        self.url_subdomain_count.get(hostname, 0) + count
+                    )
 
 
     def _print_report(self):
@@ -185,37 +192,54 @@ def scraper(url, report : Report, resp) -> list[str]:
     # check whether response is sucessful or if there is no content -> if not return
     if resp.status != 200 or resp.raw_response is None: return []
 
-    # checking whether this isn't an image or any other type with no info
+    # getting the absolute finalurl for handling redirects
+    final_url = resp.raw_response.url or url
+    absolute_url = urldefrag(final_url).url
+
+    # check if the redirect destination is a valid url and get the status of whether its a trap
+    if not is_valid(absolute_url): return []
+    current_is_trap = is_trap(absolute_url)
+
+    # check whether this isn't an image or any other type with no info
     content_type = resp.raw_response.headers.get("Content-Type", "").lower()
     if "text/html" not in content_type: return [] 
-    
-    if not is_valid(url): return []
 
+    # get data of site
+    raw_content = resp.raw_response.content
 
-    soup = BeautifulSoup(resp.raw_response.content, 'html.parser')
-    paragraphs = soup.find_all("p")
+    # decode the downloaded html before parsing it, we want to identify correct encoding 
+    decoded = UnicodeDammit(raw_content, is_html=True)
+    html = decoded.unicode_markup
 
-    article_content = article_content = (soup.article.get_text(" ", strip=True) if soup.article else soup.get_text(" ", strip=True))
-
-    reason = low_value_reason(resp, article_content)
-
-    if reason:
-        print(f"Skipped {url}: {reason}")
+    if html is None: # if it couldnt be decoded then we can't reference this site
+        print(f"Skipped {absolute_url}: unable to decode HTML")
         return []
 
-    links = extract_next_links(url, resp, soup)
-    report.visitSite(url, soup)
+    # our frontier is only going to get valid and known non-traps 
+    soup = BeautifulSoup(html, "html.parser") 
+    links = extract_next_links(absolute_url, soup)
+    valid_links = [link for link in links if is_valid(link) and not is_trap(link)]
 
-    return [link for link in links if is_valid(link)]
+    # get the content of the link we're currently on -> try to get the article text -> if theres no article tag then get ALL text
+    article_content = (soup.article.get_text(" ", strip=True) if soup.article else soup.get_text(" ", strip=True))
+    reason = low_value_reason(resp, article_content)
 
-def extract_next_links(url, resp, soup):
+    if reason: # skip 
+        print(f"Skipped {absolute_url}: {reason}")
+    elif current_is_trap: # if it was a trap from earlier, we're gonna skip 
+        print(f"Skipped reporting {absolute_url}: trap URL")
+    else:
+        report.visitSite(absolute_url, soup) # mark visit
+
+    return valid_links
+
+def extract_next_links(url, soup):
     """
     extracts all the links found in the webpage to be returned 
     Inputs:
-        url(string) - url used to get the page
-        resp(response object) - the downloaded response object of the url
+        url(string) - full absolute url used to get the page
     Outputs:
-        hyper_links(list) - list of links found in webpage
+        hyper_links(list) - list of drafragmented links found in webpage
     """
     # goal: return a list with ALL hyperlinks -> valid or not
     # create a list
@@ -225,12 +249,13 @@ def extract_next_links(url, resp, soup):
     for link in soup.find_all('a', href=True):
         temp = link.get('href')
         # if empty skip to the next link
-        if not temp.strip(): 
+        if not temp or not temp.strip(): 
             continue
         # appending links to list, joining links so relative becomes absolute
         try: 
-            temp = urljoin(resp.url, temp).split("#")[0] #removing the url fragment
+            temp = urljoin(url, temp).split("#")[0] #removing the url fragment
             hyper_links.append(temp)
+            
         except ValueError:
             print(f"Skipping malformed URL: {temp}")
             continue
@@ -267,11 +292,11 @@ def is_valid(url : str) -> bool:
             + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
             + r"|epub|dll|cnf|tgz|sha1"
             + r"|thmx|mso|arff|rtf|jar|csv"
-            + r"|rm|smil|wmv|swf|wma|zip|rar|gz|mol)$", parsed.path.lower()):
+            + r"|rm|smil|wmv|swf|wma|zip|rar|gz)$", parsed.path.lower()):
             return False
         
-        return not is_trap(url)
-
-    except TypeError:
-        print ("TypeError for ", parsed)
-        raise
+        # separating trap detection from basic url validation
+        return True
+    
+    except (TypeError, ValueError, AttributeError):
+        return False
