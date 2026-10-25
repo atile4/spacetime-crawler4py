@@ -65,12 +65,18 @@ class Report:
 
 
     def _print_report(self):
-            return(
+        # formatting subdomains correctly 
+        sub_domains = []
+        for host_name, count in self.getURLSubdomainCount():
+            sub_domains.append(f"http://{host_name}, {count}")
+        sub_domains_text = "\n".join(sub_domains)
+
+        return(
             f"============REPORT============\n"
             f"unique pages: {self.getNumVisitedURLs()}\n"
             f"longest page: {self.getLongestWebpage()}\n"
             f"top 50 words: {self.getMostCommonWords()}\n"
-            f"subdomain count: {self.getURLSubdomainCount()}\n")
+            f"subdomain count: \n{sub_domains_text}")
 
 
     def isAllowedByRobots(self, url, fetch, user_agent='*') -> bool:
