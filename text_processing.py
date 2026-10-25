@@ -31,7 +31,7 @@ stopwords = {
     "while", "who", "whos", "whom", "why", "whys", "with", "wont", "would",
     "wouldnt", "you", "youd", "youll", "youre", "youve", "your", "yours",
     "yourself", "yourselves"
-} | set(string.ascii_lowercase) 
+} | set(string.ascii_lowercase) | set(string.digits)
 
 
 def computeWordFrequencies(tokens : list[str]) -> dict[str, int] :
