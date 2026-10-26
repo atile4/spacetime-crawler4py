@@ -1,13 +1,14 @@
 
 from configparser import ConfigParser
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, UnicodeDammit
+from text_processing import tokenize
 
 from utils.config import Config
 from utils.download import download
 from utils import get_logger
 from utils.server_registration import get_cache_server
 
-url = "http://www.ics.uci.edu/~dsm/dyn/release/files/zImage_paapi"
+url = "https://cml.ics.uci.edu/category/aiml/"
 
 parser = ConfigParser()
 parser.read("config.ini")
@@ -17,48 +18,16 @@ config.cache_server = get_cache_server(config, False)
 
 resp = download(url, config, get_logger("CRAWLER"))
 
-print("Requested URL:", url)
-print("Response URL:", resp.url)
-print("Status:", resp.status)
+response = resp.raw_response
 
-if resp.raw_response is not None:
-    response = resp.raw_response
-    raw = response.content
+print("Status:", response.status_code)
+print("Final URL:", response.url)
+print("Content-Type:", response.headers.get("Content-Type"))
+print("Size:", len(response.content))
 
-    print("Final URL:", response.url)
-    print("Redirect history:", response.history)
-    print("Content-Type:", response.headers.get("Content-Type"))
-    print("File size:", len(raw), "bytes")
-    print("First 80 bytes:", repr(raw[:80]))
+soup = BeautifulSoup(response.content, "html.parser")
 
-    # Test different character encodings
-    for encoding in ["utf-8", "utf-16-le", "utf-16-be", "utf-32-le", "utf-32-be"]:
-        print(f"\n--- {encoding.upper()} TEST ---")
-
-        try:
-            html = raw.decode(encoding)
-            soup = BeautifulSoup(html, "html.parser")
-            text = soup.get_text(" ", strip=True)
-
-            print("Decoded characters:", repr(html[:150]))
-            print("HTML tag found:", soup.find("html") is not None)
-            print("Body tag found:", soup.find("body") is not None)
-            print("Extracted text:", repr(text[:300]))
-            print("Word count:", len(text.split()))
-
-        except UnicodeError as e:
-            print("Decoding failed:", e)
-
-    # Compare with original parsing
-    print("\n--- ORIGINAL BEAUTIFULSOUP PARSING ---")
-
-    soup = BeautifulSoup(raw, "html.parser")
-    text = soup.get_text(" ", strip=True)
-
-    print("Detected encoding:", soup.original_encoding)
-    print("HTML tag found:", soup.find("html") is not None)
-    print("Extracted text:", repr(text[:300]))
-    print("Word count:", len(text.split()))
-
-else:
-    print("No raw response!")
+print("Page title:", soup.title.get_text(" ", strip=True) if soup.title else None)
+print("Encoding:", soup.original_encoding)
+print("Token count:", len(tokenize(soup.get_text(" ", strip=True))))
+print("Text preview:", repr(soup.get_text(" ", strip=True)))

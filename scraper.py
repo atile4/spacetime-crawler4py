@@ -208,8 +208,11 @@ def scraper(url, report : Report, resp) -> list[str]:
     raw_content = resp.raw_response.content
 
     # decode the downloaded html before parsing it, we want to identify correct encoding 
-    decoded = UnicodeDammit(raw_content, is_html=True)
-    html = decoded.unicode_markup
+    if raw_content.startswith(b'\xff\xfe') or raw_content.startswith(b'<\x00h\x00t\x00m\x00l\x00'):
+        html = raw_content.decode("utf-16-le")
+    else:
+        decoded = UnicodeDammit(raw_content, is_html=True)
+        html = decoded.unicode_markup
 
     if html is None: # if it couldnt be decoded then we can't reference this site
         print(f"Skipped {absolute_url}: unable to decode HTML")
