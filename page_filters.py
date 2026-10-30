@@ -35,6 +35,7 @@ MAX_CALENDAR_URLS = 10
 MIN_WORDS = 50
 MAX_CONTENT_BYTES = 2 * 1024 * 1024
 
+
 JUNK_PARAMS = {
     "sid", "sessionid", "session_id", "phpsessid", "jsessionid",
     "do", "action", "oldid", "diff", "rev",
@@ -134,3 +135,16 @@ def low_value_reason(resp, text):
         return f"too few words ({len(text.split())})"
 
     return None
+
+seen_page_hashes = set()
+
+def is_duplicate(text):
+    words = tokenize(text)
+    # essentially combines all words into a single number, checks if it's seen that number
+    page_hash = hash(" ".join(words))
+
+    if page_hash in seen_page_hashes:
+        return True
+
+    seen_page_hashes.add(page_hash)
+    return False

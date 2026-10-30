@@ -9,7 +9,7 @@ from urllib.parse import urldefrag
 from bs4 import BeautifulSoup, UnicodeDammit
 
 from text_processing import computeWordFrequencies, tokenize
-from page_filters import is_trap, low_value_reason
+from page_filters import is_trap, low_value_reason, is_duplicate
 
 from urllib.robotparser import RobotFileParser
 import threading
@@ -231,6 +231,8 @@ def scraper(url, report : Report, resp) -> list[str]:
         print(f"Skipped {absolute_url}: {reason}")
     elif current_is_trap: # if it was a trap from earlier, we're gonna skip 
         print(f"Skipped reporting {absolute_url}: trap URL")
+    elif is_duplicate(article_content):
+        print(f"Skipped {absolute_url}: duplicate page")
     else:
         report.visitSite(absolute_url, soup) # mark visit
 
