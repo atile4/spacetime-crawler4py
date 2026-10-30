@@ -32,7 +32,7 @@ MAX_URLS_PER_TEMPLATE = 30
 MAX_CALENDAR_URLS = 10 
 
 # page-quality. checker variables
-MIN_WORDS = 50
+MIN_WORDS = 35
 MAX_CONTENT_BYTES = 2 * 1024 * 1024
 
 

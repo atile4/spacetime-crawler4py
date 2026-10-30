@@ -121,7 +121,7 @@ class Report:
             if url in self.visited_urls: return
             self.visited_urls.add(url)
             self._updateWordFrequencies(token_freq)
-            self._checkIfLongestPage(url, len(token_freq))
+            self._checkIfLongestPage(url, len(tokens))
 
             if ICS_DOMAIN.match(parsed.hostname): # only incrementing for ics.uci.edu domain
                 self._incrementSubdomainCount(parsed.hostname)

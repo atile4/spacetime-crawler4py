@@ -67,6 +67,6 @@ class Worker(Thread):
             for scraped_url in scraper.scraper(tbd_url, self.report, resp):
                 self.frontier.add_url(scraped_url)
 
-            self.report.save_report() # saving report of urls stats
+            # self.report.save_report() # saving report of urls stats
             self.frontier.mark_url_complete(tbd_url)
             time.sleep(self.config.time_delay)
