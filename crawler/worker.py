@@ -28,18 +28,6 @@ class Worker(Thread):
             except requests.exceptions.RequestException as e:
                 self.logger.error(f"Request failed for {url}: {e}")
                 return None
-    """    
-    @TODO 
-        - detect duplicate pages
-        - avoiding infinite traps
-        - Report class: implement visitedSite
-        - implement subdomain updating
-        - avoiding dead URLs that return a 200
-        - verify that transforms relative to URL
-        - verify detects redirects and if the page redirects your crawler, index the redirected content
-        - use tmux to operate crawler
-        - add more if necessary
-    """
 
     def run(self):
         while True:
